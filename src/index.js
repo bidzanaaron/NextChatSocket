@@ -22,7 +22,11 @@ io.on("connection", (socket) => {
       return socket.emit("authenticationStatus", { status: false });
     }
 
-    connectedUsers.push({ socket: socket, username: jwtPayload.user.username });
+    connectedUsers.push({
+      socket: socket,
+      username: jwtPayload.user.username,
+      verified: jwtPayload.user.verified,
+    });
 
     socket.emit("authenticationStatus", { status: true });
   });
@@ -30,13 +34,15 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", async (payload) => {
     console.log("Message received: ", payload);
 
-    const username = connectedUsers.find(
+    const userEntry = connectedUsers.find(
       (user) => user.socket === socket
-    ).username;
+    );
+    const { username, verified } = userEntry;
     const { message } = payload;
 
     connectedUsers.forEach((user) => {
-      user.socket.emit("broadcastMessage", { username, message });
+      console.log("Verified: ", verified);
+      user.socket.emit("broadcastMessage", { username, message, verified });
     });
   });
 
