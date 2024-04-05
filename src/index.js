@@ -24,8 +24,8 @@ io.on("connection", (socket) => {
 
     connectedUsers.push({
       socket: socket,
-      username: jwtPayload.user.username,
-      verified: jwtPayload.user.verified,
+      token: token,
+      userId: jwtPayload.user.id,
     });
 
     socket.emit("authenticationStatus", { status: true });
@@ -34,15 +34,25 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", async (payload) => {
     console.log("Message received: ", payload);
 
-    const userEntry = connectedUsers.find(
-      (user) => user.socket === socket
-    );
-    const { username, verified } = userEntry;
+    const userEntry = connectedUsers.find((user) => user.socket === socket);
+    const { token, userId } = userEntry;
     const { message } = payload;
 
+    const result = await fetch("http://localhost:3000/api/v1/messages/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${token}`,
+      },
+      body: JSON.stringify({ message }),
+    });
+
+    if (!result.ok) {
+      return;
+    }
+
     connectedUsers.forEach((user) => {
-      console.log("Verified: ", verified);
-      user.socket.emit("broadcastMessage", { username, message, verified });
+      user.socket.emit("broadcastMessage", { userId, message });
     });
   });
 
